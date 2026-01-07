@@ -1,50 +1,48 @@
 export const onRequestPost = async (context: any) => {
     const { request, env } = context;
-
     try {
         const params = await request.json();
         const OWNER_GEMINI_KEY = env.OWNER_GEMINI_KEY;
 
         if (!OWNER_GEMINI_KEY) {
-            return new Response(JSON.stringify({ error: "Thiếu OWNER_GEMINI_KEY." }), { status: 500 });
+            return new Response(JSON.stringify({ error: "Thiếu OWNER_GEMINI_KEY trên Cloudflare." }), { status: 500 });
         }
 
-        // Chuyển đổi dữ liệu sang định dạng OpenRouter/OpenAI
-        const messages = [{
-            role: "user",
-            content: [
-                ...(params.characterBase64 ? [{ type: "image_url", image_url: { url: params.characterBase64 } }] : []),
-                ...(params.outfitBase64 ? [{ type: "image_url", image_url: { url: params.outfitBase64 } }] : []),
-                ...(params.contextBase64 ? [{ type: "image_url", image_url: { url: params.contextBase64 } }] : []),
-                { type: "text", text: params.finalPrompt }
-            ]
-        }];
+        const parts: any[] = [];
+        if (params.characterBase64) parts.push({ inlineData: { data: params.characterBase64.split(',')[1], mimeType: \"image/png\" } });
+        if (params.outfitBase64) parts.push({ inlineData: { data: params.outfitBase64.split(',')[1], mimeType: \"image/png\" } });
+        if (params.contextBase64) parts.push({ inlineData: { data: params.contextBase64.split(',')[1], mimeType: \"image/png\" } });
+        parts.push({ text: params.finalPrompt });
 
-        // Sử dụng OpenRouter để vượt qua rào cản địa lý của Cloudflare HKG
-        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        // Sử dụng endpoint chuẩn của Google
+        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${OWNER_GEMINI_KEY}`;
+
+        const response = await fetch(API_URL, {
             method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${OWNER_GEMINI_KEY}`, // Bạn có thể dùng Key Gemini hiện tại hoặc Key OpenRouter
-                'Content-Type': 'application/json',
-                'HTTP-Referer': 'https://fashionai-6uk.pages.dev',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                model: "google/gemini-2.5-flash-image",
-                messages: messages,
-                response_format: { type: "json_object" }
+                contents: [{ parts }],
+                generationConfig: { imageConfig: { aspectRatio: params.aspectRatio || \"3:4\" } }
             })
         });
 
         const resData: any = await response.json();
-        
-        if (!response.ok) throw new Error(resData.error?.message || "Lỗi kết nối trung gian.");
 
-        // Trích xuất ảnh từ phản hồi của OpenRouter
-        const images = [resData.choices[0].message.content]; 
+        if (!response.ok) {
+            // Trả về lỗi thật từ Google để biết chính xác vấn đề
+            throw new Error(resData.error?.message || \"Google từ chối yêu cầu.\");
+        }
+
+        const images = resData.candidates[0].content.parts
+            .filter((p: any) => p.inlineData)
+            .map((p: any) => `data:image/png;base64,${p.inlineData.data}`);
 
         return new Response(JSON.stringify({ images }), { status: 200 });
 
     } catch (error: any) {
-        return new Response(JSON.stringify({ error: `Địa lý chặn Proxy: ${error.message}` }), { status: 500 });
+        return new Response(
+            JSON.stringify({ error: `Lỗi Proxy: ${error.message}` }),
+            { status: 500 }
+        );
     }
 };
