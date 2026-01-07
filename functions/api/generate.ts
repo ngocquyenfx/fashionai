@@ -3,8 +3,8 @@ export const onRequestPost = async (context: any) => {
     try {
         const params = await request.json();
         
-        // DÁN URL WEB APP BẠN VỪA COPY Ở BƯỚC TRÊN VÀO ĐÂY
-        const PROXY_URL = "https://script.google.com/macros/s/AKfycbwXMNCX0mt6IDuTTeQVndWp9OHWkRHO3CzS-lxUnB4Sbus9AL_A7qE41UwgEjAVYfXQlA/exec";
+        // THAY URL WEB APP MỚI CỦA BẠN VÀO ĐÂY
+        const PROXY_URL = "https://script.google.com/macros/s/AKfycbxFHLp6zzAm71euUMiaS_GJKazpcOP9i9kGQKuLopGFJhX8PKnSsdtK_I4rgODtZgig/exec";
 
         const parts: any[] = [];
         if (params.characterBase64) parts.push({ inlineData: { data: params.characterBase64.split(',')[1], mimeType: "image/png" } });
@@ -14,26 +14,33 @@ export const onRequestPost = async (context: any) => {
 
         const response = await fetch(PROXY_URL, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 contents: [{ parts }],
                 generationConfig: { imageConfig: { aspectRatio: params.aspectRatio || "3:4" } }
             })
         });
 
-        const resData: any = await response.json();
+        const text = await response.text();
+        let resData;
+        
+        try {
+            resData = JSON.parse(text);
+        } catch (e) {
+            // Nếu không phải JSON, trả về nội dung lỗi để kiểm tra
+            return new Response(JSON.stringify({ error: "Phản hồi từ Google Script không phải JSON: " + text.substring(0, 100) }), { status: 500 });
+        }
         
         if (!resData.candidates?.[0]?.content?.parts) {
-            throw new Error(resData.error?.message || "Google Script Proxy không nhận được ảnh.");
+            throw new Error(resData.error?.message || "Không nhận được ảnh từ Gemini.");
         }
 
         const images = resData.candidates[0].content.parts
             .filter((p: any) => p.inlineData)
             .map((p: any) => `data:image/png;base64,${p.inlineData.data}`);
 
-        return new Response(JSON.stringify({ images }), { status: 200 });
+        return new Response(JSON.stringify({ images }), { status: 200, headers: { "Content-Type": "application/json" } });
 
     } catch (error: any) {
-        return new Response(JSON.stringify({ error: `Lỗi qua Cầu nối: ${error.message}` }), { status: 500 });
+        return new Response(JSON.stringify({ error: `Lỗi: ${error.message}` }), { status: 500 });
     }
 };
