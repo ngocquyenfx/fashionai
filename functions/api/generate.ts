@@ -1,13 +1,10 @@
 export const onRequestPost = async (context: any) => {
-    const { request, env } = context;
-
+    const { request } = context;
     try {
         const params = await request.json();
-        const OWNER_GEMINI_KEY = env.OWNER_GEMINI_KEY;
-
-        if (!OWNER_GEMINI_KEY) {
-            return new Response(JSON.stringify({ error: "Thiếu OWNER_GEMINI_KEY trên Cloudflare Dashboard." }), { status: 500 });
-        }
+        
+        // DÁN URL WEB APP BẠN VỪA COPY Ở BƯỚC TRÊN VÀO ĐÂY
+        const PROXY_URL = "https://script.google.com/macros/s/AKfycbwXMNCX0mt6IDuTTeQVndWp9OHWkRHO3CzS-lxUnB4Sbus9AL_A7qE41UwgEjAVYfXQlA/exec";
 
         const parts: any[] = [];
         if (params.characterBase64) parts.push({ inlineData: { data: params.characterBase64.split(',')[1], mimeType: "image/png" } });
@@ -15,38 +12,28 @@ export const onRequestPost = async (context: any) => {
         if (params.contextBase64) parts.push({ inlineData: { data: params.contextBase64.split(',')[1], mimeType: "image/png" } });
         parts.push({ text: params.finalPrompt });
 
-        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${OWNER_GEMINI_KEY}`;
-
-        const response = await fetch(API_URL, {
+        const response = await fetch(PROXY_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 contents: [{ parts }],
-                generationConfig: {
-                    imageConfig: {
-                        aspectRatio: params.aspectRatio || "3:4"
-                    }
-                }
+                generationConfig: { imageConfig: { aspectRatio: params.aspectRatio || "3:4" } }
             })
         });
 
         const resData: any = await response.json();
-
-        if (!response.ok || !resData.candidates?.[0]?.content?.parts) {
-            const errorMsg = resData.error?.message || "Google từ chối yêu cầu (có thể do bộ lọc an toàn hoặc vùng địa lý).";
-            throw new Error(errorMsg);
+        
+        if (!resData.candidates?.[0]?.content?.parts) {
+            throw new Error(resData.error?.message || "Google Script Proxy không nhận được ảnh.");
         }
 
         const images = resData.candidates[0].content.parts
             .filter((p: any) => p.inlineData)
             .map((p: any) => `data:image/png;base64,${p.inlineData.data}`);
 
-        return new Response(JSON.stringify({ images }), { status: 200, headers: { "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({ images }), { status: 200 });
 
     } catch (error: any) {
-        return new Response(
-            JSON.stringify({ error: `Lỗi hệ thống: ${error.message}` }),
-            { status: 500, headers: { "Content-Type": "application/json" } }
-        );
+        return new Response(JSON.stringify({ error: `Lỗi qua Cầu nối: ${error.message}` }), { status: 500 });
     }
 };
