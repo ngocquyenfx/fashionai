@@ -1,4 +1,3 @@
-
 export const onRequestPost = async (context: any) => {
     const { request, env } = context;
 
@@ -7,49 +6,45 @@ export const onRequestPost = async (context: any) => {
         const OWNER_GEMINI_KEY = env.OWNER_GEMINI_KEY;
 
         if (!OWNER_GEMINI_KEY) {
-            return new Response(JSON.stringify({ error: "Thiếu OWNER_GEMINI_KEY trên Cloudflare Dashboard." }), { status: 500 });
+            return new Response(JSON.stringify({ error: "Thiếu OWNER_GEMINI_KEY." }), { status: 500 });
         }
 
-        const parts: any[] = [];
-        if (params.characterBase64) parts.push({ inlineData: { data: params.characterBase64.split(',')[1], mimeType: "image/png" } });
-        if (params.outfitBase64) parts.push({ inlineData: { data: params.outfitBase64.split(',')[1], mimeType: "image/png" } });
-        if (params.contextBase64) parts.push({ inlineData: { data: params.contextBase64.split(',')[1], mimeType: "image/png" } });
-        parts.push({ text: params.finalPrompt });
+        // Chuyển đổi dữ liệu sang định dạng OpenRouter/OpenAI
+        const messages = [{
+            role: "user",
+            content: [
+                ...(params.characterBase64 ? [{ type: "image_url", image_url: { url: params.characterBase64 } }] : []),
+                ...(params.outfitBase64 ? [{ type: "image_url", image_url: { url: params.outfitBase64 } }] : []),
+                ...(params.contextBase64 ? [{ type: "image_url", image_url: { url: params.contextBase64 } }] : []),
+                { type: "text", text: params.finalPrompt }
+            ]
+        }];
 
-        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${OWNER_GEMINI_KEY}`;
-
-        const response = await fetch(API_URL, {
+        // Sử dụng OpenRouter để vượt qua rào cản địa lý của Cloudflare HKG
+        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Authorization': `Bearer ${OWNER_GEMINI_KEY}`, // Bạn có thể dùng Key Gemini hiện tại hoặc Key OpenRouter
+                'Content-Type': 'application/json',
+                'HTTP-Referer': 'https://fashionai-6uk.pages.dev',
+            },
             body: JSON.stringify({
-                contents: [{ parts }],
-                generationConfig: {
-                    // Đồng bộ tỷ lệ ảnh giống hệt như khi dùng SDK
-                    imageConfig: {
-                        aspectRatio: params.aspectRatio || "3:4"
-                    }
-                }
+                model: "google/gemini-2.5-flash-image",
+                messages: messages,
+                response_format: { type: "json_object" }
             })
         });
 
         const resData: any = await response.json();
+        
+        if (!response.ok) throw new Error(resData.error?.message || "Lỗi kết nối trung gian.");
 
-        // Kiểm tra xem Google có trả về ảnh không hay bị chặn bởi bộ lọc
-        if (!response.ok || !resData.candidates?.[0]?.content?.parts) {
-            const errorMsg = resData.error?.message || "Google từ chối yêu cầu (có thể do bộ lọc an toàn hoặc sai định dạng).";
-            throw new Error(errorMsg);
-        }
+        // Trích xuất ảnh từ phản hồi của OpenRouter
+        const images = [resData.choices[0].message.content]; 
 
-        const images = resData.candidates[0].content.parts
-            .filter((p: any) => p.inlineData)
-            .map((p: any) => `data:image/png;base64,${p.inlineData.data}`);
-
-        return new Response(JSON.stringify({ images }), { status: 200, headers: { "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({ images }), { status: 200 });
 
     } catch (error: any) {
-        return new Response(
-            JSON.stringify({ error: `Lỗi hệ thống: ${error.message}` }),
-            { status: 500, headers: { "Content-Type": "application/json" } }
-        );
+        return new Response(JSON.stringify({ error: `Địa lý chặn Proxy: ${error.message}` }), { status: 500 });
     }
 };
