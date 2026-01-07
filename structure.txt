@@ -1,0 +1,30 @@
+Fashion AI Builder/
+├── .env.local
+├── .gitignore
+├── functions/
+│   └── api/
+│       └── generate.ts
+├── index.html
+├── package.json
+├── package-lock.json
+├── postcss.config.js
+├── public/
+│   ├── metadata.json
+│   └── QRzalo.JPEG
+├── README.md
+├── src/
+│   ├── App.tsx
+│   ├── components/
+│   │   ├── ApiKeyModal.tsx
+│   │   ├── Header.tsx
+│   │   └── ImageUploader.tsx
+│   ├── constants.ts
+│   ├── index.css
+│   ├── index.tsx
+│   ├── services/
+│   │   ├── geminiService.ts
+│   │   └── historyService.ts
+│   ├── types.ts
+├── tailwind.config.js
+├── tsconfig.json
+└── vite.config.ts

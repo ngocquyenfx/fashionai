@@ -1,0 +1,6 @@
+
+{
+  "name": "Fashion AI Builder",
+  "description": "An advanced fashion photography generator that combines character, outfit, and context images using Gemini 2.5 Flash Image.",
+  "requestFramePermissions": ["camera"]
+}
