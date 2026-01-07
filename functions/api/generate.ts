@@ -3,8 +3,8 @@ export const onRequestPost = async (context: any) => {
     try {
         const params = await request.json();
         
-        // THAY URL WEB APP MỚI CỦA BẠN VÀO ĐÂY
-        const PROXY_URL = "https://script.google.com/macros/s/AKfycbxFHLp6zzAm71euUMiaS_GJKazpcOP9i9kGQKuLopGFJhX8PKnSsdtK_I4rgODtZgig/exec";
+        // DÁN URL /exec MỚI NHẤT BẠN VỪA LẤY Ở BƯỚC 1 VÀO ĐÂY
+        const PROXY_URL = "https://script.google.com/macros/s/AKfycbxqe3QEBWAal8UgxEBeRNx8HBgxnGiAelctPmmPZAPT9Gf5sRcdBzQOel-o0L_uQaexmA/exec";
 
         const parts: any[] = [];
         if (params.characterBase64) parts.push({ inlineData: { data: params.characterBase64.split(',')[1], mimeType: "image/png" } });
@@ -14,31 +14,28 @@ export const onRequestPost = async (context: any) => {
 
         const response = await fetch(PROXY_URL, {
             method: 'POST',
+            redirect: 'follow', // Rất quan trọng để đi xuyên qua cơ chế của Google Script
             body: JSON.stringify({
                 contents: [{ parts }],
                 generationConfig: { imageConfig: { aspectRatio: params.aspectRatio || "3:4" } }
             })
         });
 
-        const text = await response.text();
-        let resData;
-        
-        try {
-            resData = JSON.parse(text);
-        } catch (e) {
-            // Nếu không phải JSON, trả về nội dung lỗi để kiểm tra
-            return new Response(JSON.stringify({ error: "Phản hồi từ Google Script không phải JSON: " + text.substring(0, 100) }), { status: 500 });
-        }
+        const resData: any = await response.json();
         
         if (!resData.candidates?.[0]?.content?.parts) {
-            throw new Error(resData.error?.message || "Không nhận được ảnh từ Gemini.");
+            const errorMsg = resData.error?.message || "Cầu nối không nhận được ảnh. Hãy kiểm tra lại Key Tier 1.";
+            throw new Error(errorMsg);
         }
 
         const images = resData.candidates[0].content.parts
             .filter((p: any) => p.inlineData)
             .map((p: any) => `data:image/png;base64,${p.inlineData.data}`);
 
-        return new Response(JSON.stringify({ images }), { status: 200, headers: { "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({ images }), { 
+            status: 200, 
+            headers: { "Content-Type": "application/json" } 
+        });
 
     } catch (error: any) {
         return new Response(JSON.stringify({ error: `Lỗi: ${error.message}` }), { status: 500 });
