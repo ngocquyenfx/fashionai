@@ -4,7 +4,7 @@ export const onRequestPost = async (context: any) => {
         const params = await request.json();
         
         // DÁN URL /exec MỚI NHẤT BẠN VỪA LẤY Ở BƯỚC 1 VÀO ĐÂY
-        const PROXY_URL = "https://script.google.com/macros/s/AKfycbz9oLkUUrmctmG5gNf7HlKm4ve0MZrWqk0bx7IvsNpUwcuWMxTryMSxn7If-BdW2mtn8Q/exec";
+        const PROXY_URL = "https://script.google.com/macros/s/AKfycbwO2vCsQhnVpDNyNy3AVn0-OJJjC-huap-3Sz7j82UnwaNWhjBrzxnwB9ncQrlOW3SoPA/exec";
 
         const parts: any[] = [];
         if (params.characterBase64) parts.push({ inlineData: { data: params.characterBase64.split(',')[1], mimeType: "image/png" } });
