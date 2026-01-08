@@ -22,7 +22,7 @@ export const ASPECT_RATIOS: { label: string; value: any }[] = [
   { label: "9:16", value: "9:16" }
 ];
 
-export const FREE_LIMIT = 10;
+export const FREE_USAGE_LIMIT = 5;
 
 export const UsageManager = {
   getUsageCount: (): number => {
