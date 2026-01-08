@@ -3,8 +3,11 @@ export const onRequestPost = async (context: any) => {
     try {
         const params = await request.json();
         
-        // DÁN URL /exec MỚI NHẤT BẠN VỪA LẤY Ở BƯỚC 1 VÀO ĐÂY
-        const PROXY_URL = "https://script.google.com/macros/s/AKfycbxsRhLU5sCIlhIahRU-ugo1zPGS26ewz7iLtsYRAoTpuIEZEJGBiQxLjxlew491jaIxdw/exec";
+        // URL Web App Google Script của bạn (Đã cập nhật theo bản mới nhất của bạn)
+        const PROXY_URL = "https://script.google.com/macros/s/AKfycbwrYXcluqkkRvnINhN6Zhh9JFFpFhxTuCDTCkTv9dlOojePnmvEvHBjxpR4afpVCbWvpw/exec";
+
+        // Lấy IP thật của người dùng thông qua Header của Cloudflare
+        const userIP = request.headers.get("cf-connecting-ip") || "unknown";
 
         const parts: any[] = [];
         if (params.characterBase64) parts.push({ inlineData: { data: params.characterBase64.split(',')[1], mimeType: "image/png" } });
@@ -14,17 +17,31 @@ export const onRequestPost = async (context: any) => {
 
         const response = await fetch(PROXY_URL, {
             method: 'POST',
-            redirect: 'follow', // Rất quan trọng để đi xuyên qua cơ chế của Google Script
+            redirect: 'follow', // Quan trọng: Google Script luôn yêu cầu redirect để thực thi mã
+            headers: {
+                'Content-Type': 'application/json'
+            },
             body: JSON.stringify({
+                userIP: userIP, // Gửi IP sang Google Script để quản lý giới hạn 5 lượt/ngày
                 contents: [{ parts }],
-                generationConfig: { imageConfig: { aspectRatio: params.aspectRatio || "3:4" } }
+                generationConfig: { 
+                    imageConfig: { 
+                        aspectRatio: params.aspectRatio || "3:4" 
+                    } 
+                }
             })
         });
 
         const resData: any = await response.json();
         
+        // Kiểm tra nếu Google Script trả về lỗi (Ví dụ: Hết lượt dùng hoặc lỗi API)
+        if (resData.error) {
+            throw new Error(resData.error.message);
+        }
+
+        // Kiểm tra cấu trúc phản hồi từ Gemini
         if (!resData.candidates?.[0]?.content?.parts) {
-            const errorMsg = resData.error?.message || "Cầu nối không nhận được ảnh. Hãy kiểm tra lại Key Tier 1.";
+            const errorMsg = "Không nhận được phản hồi ảnh từ hệ thống. Vui lòng kiểm tra lại Key hoặc nội dung ảnh.";
             throw new Error(errorMsg);
         }
 
@@ -38,6 +55,7 @@ export const onRequestPost = async (context: any) => {
         });
 
     } catch (error: any) {
-        return new Response(JSON.stringify({ error: `Lỗi: ${error.message}` }), { status: 500 });
+        // Trả về lỗi chi tiết để hiển thị lên UI (Dòng chữ đỏ dưới nút Tạo ảnh)
+        return new Response(JSON.stringify({ error: error.message }), { status: 500 });
     }
 };
