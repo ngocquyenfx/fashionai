@@ -61,11 +61,11 @@ const App: React.FC = () => {
       // Check usage if no user key
       if (!hasUserKey) {
         const count = UsageManager.getUsageCount();
-        if (count >= 10) {
+        if (count >= 5) {
           throw new Error("Bạn đã hết lượt dùng miễn phí hôm nay. Hãy thêm API Key cá nhân để tiếp tục.");
         }
         if (UsageManager.isNearLimit()) {
-          triggerToast(`Bạn còn ${10 - count} lượt miễn phí hôm nay.`, 'warning');
+          triggerToast(`Bạn còn ${5 - count} lượt miễn phí hôm nay.`, 'warning');
         }
       }
 
@@ -375,7 +375,7 @@ const App: React.FC = () => {
             {/* Section Lưu ý */}
             <section className="mt-12 p-6 bg-zinc-900/50 rounded-3xl border border-zinc-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
               <div className="space-y-2 text-xs text-zinc-400">
-                <p>• Bạn có thể tạo ảnh tối đa 10 lần <strong>MIỄN PHÍ/ ngày</strong>.</p>
+                <p>• Bạn có thể tạo ảnh tối đa 5 lần <strong>MIỄN PHÍ/ ngày</strong>.</p>
                 <p>• Khi hết lượt miễn phí có thể chờ sang ngày hôm sau. Hoặc sử dụng <strong>KEY MIỄN PHÍ</strong> của riêng bạn từ Google Gemini để sử dụng không giới hạn.</p>
                 <p>• <strong>LIÊN HỆ</strong> với tôi nếu bạn cần hỗ trợ hoặc cần hướng dẫn tự tạo KEY MIỄN PHÍ.</p>
                 <p>• <strong>Cam kết:</strong> App không lưu trữ thông tin của người dùng. Chỉ riêng bạn có quyền sử dụng sản phẩm và thông tin của chính mình.</p>
