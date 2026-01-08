@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect } from 'react';
 import { ImageUploader } from './components/ImageUploader';
 import Header from './components/Header';
@@ -58,7 +57,6 @@ const App: React.FC = () => {
     setState(prev => ({ ...prev, isGenerating: true, error: null }));
 
     try {
-      // Check usage if no user key
       if (!hasUserKey) {
         const count = UsageManager.getUsageCount();
         if (count >= 5) {
@@ -69,12 +67,8 @@ const App: React.FC = () => {
         }
       }
 
-      // Build Final Prompt Logic
       const defaultPrefix = "Ảnh chụp thực tế. ";
       const weightedKeywords = "hyper-realistic, sharp focus. ";
-
-      // In a real scenario, we'd use Gemini to "analyze" but for this builder, 
-      // we combine visual references directly into the generation prompt.
       const characterAnalysis = "Nhân vật ở trung tâm, duy trì đặc điểm khuôn mặt, vóc dáng và thần thái như ảnh tham chiếu 1. ";
       const outfitAnalysis = "Trang phục chi tiết, màu sắc và chất liệu trung thực như ảnh tham chiếu 2. ";
       const contextAnalysis = state.contextImg ? "Bối cảnh và ánh sáng lấy cảm hứng từ ảnh tham chiếu 3. " : "";
@@ -96,7 +90,6 @@ const App: React.FC = () => {
         timestamp: Date.now()
       }));
 
-      // Save to IndexedDB and update history state
       for (const img of newResults) {
         await HistoryManager.saveImage(img);
       }
@@ -187,7 +180,7 @@ const App: React.FC = () => {
                     const val = e.target.value;
                     if (val === 'hanoi') setState(prev => ({ ...prev, prompt: CONTEXT_PRESETS.hanoi.prompt }));
                     if (val === 'studio') setState(prev => ({ ...prev, prompt: CONTEXT_PRESETS.studio.prompt }));
-                    e.target.value = ""; // Reset dropdown
+                    e.target.value = ""; 
                   }}
                   className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm focus:border-orange-500 outline-none appearance-none"
                 >
@@ -264,6 +257,24 @@ const App: React.FC = () => {
         {/* Right Column (Results) */}
         <main className="flex-1 p-8 overflow-y-auto h-screen no-scrollbar">
           <div className="max-w-6xl mx-auto">
+            {/* --- Section Lưu ý (ĐÃ ĐƯA LÊN TRÊN ĐẦU) --- */}
+            <section className="mb-12 p-6 bg-zinc-900/50 rounded-3xl border border-zinc-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+              <div className="space-y-2 text-xs text-zinc-400">
+                <p>• Bạn có thể tạo ảnh tối đa 5 lần <strong>MIỄN PHÍ/ ngày</strong>.</p>
+                <p>• Khi hết lượt miễn phí có thể chờ sang ngày hôm sau. Hoặc sử dụng <strong>KEY MIỄN PHÍ</strong> của riêng bạn từ Google Gemini để sử dụng không giới hạn.</p>
+                <p>• <strong>LIÊN HỆ</strong> với tôi nếu bạn cần hỗ trợ hoặc cần hướng dẫn tự tạo KEY MIỄN PHÍ.</p>
+                <p>• <strong>Cam kết:</strong> App không lưu trữ thông tin của người dùng. Chỉ riêng bạn có quyền sử dụng sản phẩm và thông tin của chính mình.</p>
+                <p>• Để đảm bảo lưu trữ mượt mà, app sẽ chỉ lưu trữ tối đa <strong>20 ảnh gần nhất</strong>.</p>
+              </div>
+              <button
+                onClick={() => setIsContactModalOpen(true)}
+                className="px-8 py-3 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-orange-900/20 whitespace-nowrap"
+              >
+                LIÊN HỆ
+              </button>
+            </section>
+
+            {/* --- Section Kết quả --- */}
             <div className="flex items-center justify-between mb-8 border-b border-zinc-900 pb-4">
               <div>
                 <h2 className="text-2xl font-bold">Kết quả</h2>
@@ -282,8 +293,8 @@ const App: React.FC = () => {
             </div>
 
             {state.results.length === 0 && !state.isGenerating && (
-              <div className="h-[60vh] flex flex-col items-center justify-center text-zinc-800 border-2 border-dashed border-zinc-900 rounded-3xl">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-24 w-24 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="h-[40vh] flex flex-col items-center justify-center text-zinc-800 border-2 border-dashed border-zinc-900 rounded-3xl">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-20 w-20 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={0.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
                 <p className="text-lg font-medium">Chưa có ảnh nào được tạo</p>
@@ -304,39 +315,21 @@ const App: React.FC = () => {
               </div>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pb-20">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pb-12">
               {state.results.map((result) => (
                 <div key={result.id} className="group relative rounded-3xl overflow-hidden bg-zinc-900 border border-zinc-800 shadow-2xl transition-transform hover:scale-[1.01]">
-                  <img
-                    src={result.url}
-                    alt="Generated Fashion"
-                    className="w-full h-full object-cover aspect-square"
-                  />
-
-                  {/* Actions Overlay */}
+                  <img src={result.url} alt="Generated Fashion" className="w-full h-full object-cover aspect-square" />
                   <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      onClick={() => downloadImage(result.url)}
-                      className="p-3 bg-black/60 backdrop-blur-md rounded-2xl text-white hover:bg-orange-600 transition-colors shadow-xl border border-white/10"
-                      title="Download"
-                    >
+                    <button onClick={() => downloadImage(result.url)} className="p-3 bg-black/60 backdrop-blur-md rounded-2xl text-white hover:bg-orange-600 transition-colors shadow-xl border border-white/10" title="Download">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                       </svg>
                     </button>
-                    <button
-                      onClick={() => setFullScreenImg(result.url)}
-                      className="p-3 bg-black/60 backdrop-blur-md rounded-2xl text-white hover:bg-orange-600 transition-colors shadow-xl border border-white/10"
-                      title="Full Screen"
-                    >
+                    <button onClick={() => setFullScreenImg(result.url)} className="p-3 bg-black/60 backdrop-blur-md rounded-2xl text-white hover:bg-orange-600 transition-colors shadow-xl border border-white/10" title="Full Screen">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
                       </svg>
                     </button>
-                  </div>
-
-                  <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                    <p className="text-[10px] text-zinc-400 font-bold uppercase">Fashion AI Studio • Photorealistic</p>
                   </div>
                 </div>
               ))}
@@ -344,9 +337,9 @@ const App: React.FC = () => {
 
             {/* Section Lịch sử */}
             <section className="mt-12">
-              <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+              <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-zinc-400">
                 <svg className="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                LỊCH SỬ
+                LỊCH SỬ GẦN ĐÂY
               </h3>
               <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar scroll-smooth">
                 {history.length === 0 ? (
@@ -354,16 +347,10 @@ const App: React.FC = () => {
                 ) : (
                   history.map((img) => (
                     <div key={img.id} className="flex-shrink-0 w-40 group relative">
-                      <div
-                        className="aspect-square rounded-xl overflow-hidden border border-zinc-800 cursor-pointer hover:border-orange-500 transition-all"
-                        onClick={() => setState(prev => ({ ...prev, results: [img] }))}
-                      >
+                      <div className="aspect-square rounded-xl overflow-hidden border border-zinc-800 cursor-pointer hover:border-orange-500 transition-all" onClick={() => setState(prev => ({ ...prev, results: [img] }))}>
                         <img src={img.url} className="w-full h-full object-cover" alt="History item" />
                       </div>
-                      <button
-                        onClick={() => { HistoryManager.deleteImage(img.id); setHistory(h => h.filter(x => x.id !== img.id)); }}
-                        className="absolute -bottom-2 -right-2 p-1.5 bg-zinc-900 border border-zinc-800 rounded-full text-zinc-500 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all shadow-lg"
-                      >
+                      <button onClick={() => { HistoryManager.deleteImage(img.id); setHistory(h => h.filter(x => x.id !== img.id)); }} className="absolute -bottom-2 -right-2 p-1.5 bg-zinc-900 border border-zinc-800 rounded-full text-zinc-500 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all shadow-lg">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                       </button>
                     </div>
@@ -371,88 +358,36 @@ const App: React.FC = () => {
                 )}
               </div>
             </section>
-
-            {/* Section Lưu ý */}
-            <section className="mt-12 p-6 bg-zinc-900/50 rounded-3xl border border-zinc-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-              <div className="space-y-2 text-xs text-zinc-400">
-                <p>• Bạn có thể tạo ảnh tối đa 5 lần <strong>MIỄN PHÍ/ ngày</strong>.</p>
-                <p>• Khi hết lượt miễn phí có thể chờ sang ngày hôm sau. Hoặc sử dụng <strong>KEY MIỄN PHÍ</strong> của riêng bạn từ Google Gemini để sử dụng không giới hạn.</p>
-                <p>• <strong>LIÊN HỆ</strong> với tôi nếu bạn cần hỗ trợ hoặc cần hướng dẫn tự tạo KEY MIỄN PHÍ.</p>
-                <p>• <strong>Cam kết:</strong> App không lưu trữ thông tin của người dùng. Chỉ riêng bạn có quyền sử dụng sản phẩm và thông tin của chính mình.</p>
-                <p>• Để đảm bảo lưu trữ mượt mà, app sẽ chỉ lưu trữ tối đa <strong>20 ảnh gần nhất</strong>.</p>
-              </div>
-              <button
-                onClick={() => setIsContactModalOpen(true)}
-                className="px-8 py-3 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-orange-900/20 whitespace-nowrap"
-              >
-                LIÊN HỆ
-              </button>
-            </section>
           </div>
         </main>
       </div>
 
-      {/* Fullscreen Preview Modal */}
+      {/* Modals & Toasts */}
       {fullScreenImg && (
-        <div
-          className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4 md:p-10 animate-in fade-in zoom-in duration-300"
-          onClick={() => setFullScreenImg(null)}
-        >
+        <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4" onClick={() => setFullScreenImg(null)}>
           <div className="relative max-w-full max-h-full">
-            <img src={fullScreenImg} alt="Preview" className="max-w-full max-h-[90vh] rounded-xl shadow-2xl object-contain" />
-            <button
-              className="absolute -top-12 right-0 text-white hover:text-orange-500 flex items-center gap-2 font-bold uppercase tracking-wider"
-              onClick={() => setFullScreenImg(null)}
-            >
-              Đóng
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); downloadImage(fullScreenImg); }}
-              className="absolute -bottom-16 left-1/2 -translate-x-1/2 px-6 py-3 bg-orange-600 rounded-full text-white font-bold uppercase shadow-xl hover:bg-orange-700 active:scale-95 transition-all"
-            >
-              Tải ảnh về máy
+            <img src={fullScreenImg} alt="Preview" className="max-w-full max-h-[90vh] rounded-xl object-contain" />
+            <button className="absolute -top-12 right-0 text-white hover:text-orange-500 flex items-center gap-2 font-bold" onClick={() => setFullScreenImg(null)}>
+              ĐÓNG <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
           </div>
         </div>
       )}
 
-      {/* API Key Modal */}
-      <ApiKeyModal
-        isOpen={isApiKeyModalOpen}
-        onClose={() => setIsApiKeyModalOpen(false)}
-        onKeySaved={() => setHasUserKey(!!UsageManager.getUserApiKey())}
-      />
+      <ApiKeyModal isOpen={isApiKeyModalOpen} onClose={() => setIsApiKeyModalOpen(false)} onKeySaved={() => setHasUserKey(!!UsageManager.getUserApiKey())} />
 
-      {/* Contact Modal */}
       {isContactModalOpen && (
         <div className="fixed inset-0 z-[120] bg-black/90 backdrop-blur-md flex items-center justify-center p-4" onClick={() => setIsContactModalOpen(false)}>
-          <div className="relative max-w-sm w-full bg-zinc-900 p-2 rounded-3xl border border-zinc-800 animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+          <div className="relative max-w-sm w-full bg-zinc-900 p-2 rounded-3xl border border-zinc-800" onClick={e => e.stopPropagation()}>
             <img src="/QRzalo.JPEG" className="w-full rounded-2xl" alt="Zalo QR" />
-            <button
-              onClick={() => setIsContactModalOpen(false)}
-              className="absolute -top-4 -right-4 w-10 h-10 bg-orange-600 rounded-full flex items-center justify-center text-white shadow-xl"
-            >
-              ✕
-            </button>
+            <button onClick={() => setIsContactModalOpen(false)} className="absolute -top-4 -right-4 w-10 h-10 bg-orange-600 rounded-full flex items-center justify-center text-white shadow-xl">✕</button>
           </div>
         </div>
       )}
 
-      {/* Toast Notification */}
       {showToast && (
-        <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[110] px-6 py-3 rounded-2xl shadow-2xl border backdrop-blur-md animate-in slide-in-from-bottom-4 duration-300 ${showToast.type === 'error'
-          ? 'bg-red-500/20 border-red-500/50 text-red-200'
-          : 'bg-amber-500/20 border-amber-500/50 text-amber-200'
-          }`}>
+        <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[110] px-6 py-3 rounded-2xl shadow-2xl border backdrop-blur-md animate-in slide-in-from-bottom-4 duration-300 ${showToast.type === 'error' ? 'bg-red-500/20 border-red-500/50 text-red-200' : 'bg-amber-500/20 border-amber-500/50 text-amber-200'}`}>
           <div className="flex items-center gap-3">
-            {showToast.type === 'error' ? (
-              <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            ) : (
-              <svg className="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-            )}
             <span className="font-bold text-sm tracking-wide">{showToast.message}</span>
           </div>
         </div>
